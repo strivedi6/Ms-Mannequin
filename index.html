@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Ms. Mannequin Invoices</title>
+<meta name="theme-color" content="#F2F2F7">
+<meta name="referrer" content="no-referrer">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="Invoices">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Invoices">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>
+  // Set light or dark before the page draws, so it never flashes the wrong colour.
+  (function () { try { var a = JSON.parse(localStorage.getItem('mm_appearance')) || 'auto';
+    var d = a === 'dark' || (a === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', d ? 'dark' : 'light');
+    if (d) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#000000'); } catch (e) {} })();
+</script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app" aria-live="polite"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="print-sheet" aria-hidden="true"></div>
+<noscript>Please turn on JavaScript to use this app.</noscript>
+<script src="qr.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
