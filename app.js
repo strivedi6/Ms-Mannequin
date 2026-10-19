@@ -82,6 +82,7 @@
   /* ---------------- Defaults ---------------- */
   const DEFAULT_SETTINGS = {
     shopName: CONFIG.shopName || 'Ms. Mannequin',
+    userName: 'Gayatri',
     tagline: CONFIG.subtitle || 'Custom Fashion Designing',
     phone: '', email: '', address: '', trn: '',
     instagram: 'https://www.instagram.com/ms_mannequin_11',
@@ -192,7 +193,16 @@
   }
 
   /* ---------------- Session and server ---------------- */
+  const QUOTES = ["Small steps every day still take you far.", "Make today beautiful, one stitch at a time.", "Your talent is the thread that holds it all together.", "Great things are sewn with patience.", "Believe in your craft. Your clients already do.", "Every masterpiece starts with a single measurement.", "Do it with care and it will speak for itself.", "Today is a fresh piece of fabric. Create something lovely.", "Progress, not perfection.", "Confidence looks good on you. So does that dress.", "Work gently, finish proudly.", "Good work builds a good name.", "Start where you are. Use what you have.", "The best designs are made with heart.", "You are building something wonderful.", "One happy client at a time.", "Keep going. Your hard work is showing.", "Dream big, cut carefully.", "Kind words and neat seams bring customers back.", "A little effort each day adds up to something big.", "Create with joy. It always shows in the finish.", "Stay patient. Beautiful things take time.", "You make people feel special. That is a gift.", "Today's effort is tomorrow's success.", "Be proud of how far you have come.", "Every order is a chance to delight someone.", "Calm mind, steady hands.", "Your shop grows because you do.", "Courage looks like trying again.", "Make it simple, make it lovely, make it yours.", "Quality is remembered long after the price is forgotten.", "Let your work shine today.", "Focus on the next good thing.", "Organised today, relaxed tomorrow.", "You've got this, Gayatri.", "Good things come to those who keep stitching.", "Be the reason someone loves what they wear.", "Smile. Today will bring something good.", "Slow and steady still wins.", "Make every detail count."];
+  function nextQuote() {
+    const last = LS.get('mm_lastq');
+    let i;
+    do { i = Math.floor(Math.random() * QUOTES.length); } while (i === last && QUOTES.length > 1);
+    LS.set('mm_lastq', i);
+    return QUOTES[i];
+  }
   const state = {
+    quote: '',
     token: LS.get('mm_token'),
     route: { name: 'home', params: {} },
     syncing: false,
@@ -854,18 +864,16 @@
         <h1>${esc(db.settings.shopName)}</h1>
         <p>${esc(db.settings.tagline)}</p>
       </div>
-      <form class="card auth-card" data-form="login" novalidate>
-        <div class="stack" style="gap:4px">
-          <h2 style="font-size:24px">Welcome back</h2>
-          <p class="muted small">Enter your 4-digit PIN to open your invoices.</p>
-        </div>
-        <div class="field">
-          <label for="l-pin">4-digit PIN</label>
-          <input class="input pin-input" id="l-pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="current-password" required data-autofocus>
+      <form class="auth-card login-card" data-form="login" novalidate>
+        <h2>Welcome back, ${esc(db.settings.userName || 'Gayatri')}</h2>
+        <p class="quote">“${esc(state.quote)}”</p>
+        <label class="pin-label" for="l-pin">Enter your passcode</label>
+        <div class="pin-wrap">
+          <div class="pin-boxes" aria-hidden="true"><span class="pin-box on"></span><span class="pin-box"></span><span class="pin-box"></span><span class="pin-box"></span></div>
+          <input class="pin-real" id="l-pin" name="pin" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" autocorrect="off" required data-autofocus aria-label="4-digit passcode">
         </div>
         <div class="error-box" id="form-error" hidden></div>
-        <button class="btn" type="submit">Open</button>
-        <p class="small muted center">Forgot your PIN? Set a new one in Code.gs and run setup again (see SETUP.md).</p>
+        <p class="small muted center">Forgot it? Set a new PIN in Code.gs and run setup again.</p>
       </form>
       <div class="auth-foot"><p class="muted small">${esc(db.settings.shopName)} · ${esc(db.settings.tagline)}</p></div>
     </div>`;
@@ -977,9 +985,10 @@
     return `
     <div class="screen"><div class="page with-nav">
       <div class="row between">
-        <div class="greet"><p class="muted">${greeting()}</p><h1 class="title-lg">${esc(db.settings.shopName)}</h1><p class="muted small" data-sync-label>${esc(syncLabel())}</p></div>
+        <div class="greet"><p class="muted">${greeting().replace(',', '')}, ${esc(db.settings.userName || 'Gayatri')}</p><h1 class="title-lg">${esc(db.settings.shopName)}</h1><p class="muted small" data-sync-label>${esc(syncLabel())}</p></div>
         <img src="logo.png" alt="" width="52" height="52" style="border-radius:50%;flex-shrink:0">
       </div>
+      <div class="quote-card"><span class="qm">“</span><p>${esc(state.quote)}</p></div>
       <div class="stack" id="ana" style="gap:16px">${anaHtml()}</div>
       <div class="sec-h"><span class="section-title">Recent invoices</span>${invs.length ? '<button class="link-btn" type="button" data-act="nav" data-to="invoices" style="min-height:24px">See all</button>' : ''}</div>
       <div class="list">${invs.length ? invs.slice(0, 5).map(invoiceCard).join('') : emptyState('No invoices yet.<br>Tap <b>New</b> to create the first one.')}</div>
@@ -1020,11 +1029,11 @@
           <button class="btn btn-outline" type="button" data-act="whatsapp" data-id="${esc(id)}">${I.chat} WhatsApp</button>
           <button class="btn btn-outline" type="button" data-act="print" ${ready ? '' : 'disabled'}>${I.print} Print</button>
         </div>
-        <div class="grid-3">
+        <div class="grid-2">
           <button class="link-btn" type="button" data-act="shareFile" data-kind="image" ${ready ? '' : 'disabled'}>Save image</button>
-          <button class="link-btn" type="button" data-act="editInvoice" data-id="${esc(id)}">Edit</button>
-          <button class="link-btn" type="button" data-act="deleteInvoice" data-id="${esc(id)}" style="color:var(--notice)">Delete</button>
+          <button class="link-btn" type="button" data-act="editInvoice" data-id="${esc(id)}">Edit invoice</button>
         </div>
+        <button class="btn btn-danger" type="button" data-act="deleteInvoice" data-id="${esc(id)}">${I.trash} Delete this invoice</button>
       </div>
     </div></div>`;
   };
@@ -1095,7 +1104,7 @@
         <div class="tot-row big"><span>Current balance</span><b id="t-bal"></b></div>
       </div>
       <div class="card"><div class="field"><label for="iv-notes">Notes on the invoice (optional)</label><textarea class="textarea" id="iv-notes" style="min-height:76px" placeholder="e.g. Trial on 10 Oct" data-input="invNotes">${esc(draft.notes)}</textarea></div></div>
-      <div class="sticky-actions"><button class="btn" type="button" data-act="saveInvoice">${draft.editId ? 'Update invoice' : 'Save invoice'}</button></div>
+      <div class="sticky-actions"><button class="btn" type="button" data-act="saveInvoice">${draft.editId ? 'Update invoice' : 'Save invoice'}</button>${draft.editId ? `<button class="btn btn-danger" type="button" data-act="deleteInvoice" data-id="${esc(draft.editId)}">${I.trash} Delete this invoice</button>` : ''}</div>
     </div></div>
     ${setTimeout(paintTotals, 0) && ''}`;
   };
@@ -1222,6 +1231,7 @@
 
   VIEWS.setShop = () => subPage('Shop details', 'Shown at the top of every invoice. The logo is the Ms. Mannequin logo.', I.store, '#C98D88', `
     <div class="card">
+      ${sField('Your name (shown in the greeting)', 'userName')}
       ${sField('Shop name', 'shopName')}${sField('Tagline', 'tagline')}
       <div class="grid-2">${sField('Phone', 'phone', { type: 'tel' })}${sField('Email', 'email', { type: 'email' })}</div>
       ${sField('Address', 'address', { area: true })}
@@ -1387,8 +1397,10 @@
       const inv = getInv(el.dataset.id);
       if (!inv || !confirmBox(`Delete invoice ${inv.no}? This cannot be undone.`)) return;
       inv.deleted = true; touch(inv); recalcAll(); persist();
+      if (draft.editId === inv.id) { draft = newDraft(); saveDraft(); }
+      Share.current = null;
       toast('Invoice deleted.');
-      back('invoices');
+      go('invoices', {}, true);
     },
     retryShare() { Share.failedId = null; render(); },
     async shareFile(el) { try { await Share.send(el.dataset.kind); } catch (e) { showError(e); } },
@@ -1442,17 +1454,23 @@
   const formError = (msg) => { const e = document.getElementById('form-error'); if (e) { e.textContent = msg; e.hidden = !msg; } };
   const FORMS = {
     async login(form) {
-      const pin = String(new FormData(form).get('pin') || '').replace(/\D/g, '');
-      if (pin.length !== 4) { formError('Enter your 4-digit PIN.'); return; }
-      const btn = form.querySelector('button[type=submit]');
-      btn.disabled = true; formError('');
+      const input = form.querySelector('.pin-real');
+      const pin = String(input.value || '').replace(/\D/g, '');
+      if (pin.length !== 4) { formError('Enter your 4-digit passcode.'); return; }
+      input.disabled = true; formError('');
       try {
         const j = await api('login', { pin });
         state.token = j.token;
         LS.set('mm_token', j.token);
+        state.quote = nextQuote();
         if (!isStandalone() && isIOS() && !LS.get('mm_install_seen')) go('install', {}, true); else go('home', {}, true);
         sync();
-      } catch (e) { formError(e.message); btn.disabled = false; const i = form.querySelector('input'); if (i) { i.value = ''; i.focus(); } }
+      } catch (e) {
+        formError(e.message);
+        input.disabled = false; input.value = ''; pinPaint(input);
+        const w = form.querySelector('.pin-boxes'); if (w) { w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); }
+        input.focus();
+      }
     },
     customer(form) {
       const f = new FormData(form);
@@ -1555,6 +1573,14 @@
     custSearch(el) { state.custQ = el.value; const l = document.getElementById('cust-list'); if (l) l.innerHTML = customerListHtml(); }
   };
 
+  function pinPaint(input) {
+    const boxes = input.closest('.pin-wrap').querySelectorAll('.pin-box');
+    const n = input.value.length;
+    boxes.forEach((b, i) => { b.classList.toggle('filled', i < n); b.classList.toggle('on', document.activeElement === input && i === Math.min(n, 3)); });
+  }
+  document.addEventListener('focusin', (e) => { if (e.target.classList && e.target.classList.contains('pin-real')) pinPaint(e.target); });
+  document.addEventListener('focusout', (e) => { if (e.target.classList && e.target.classList.contains('pin-real')) pinPaint(e.target); });
+
   /* ---------------- Event wiring ---------------- */
   document.addEventListener('click', (e) => {
     const el = e.target.closest('[data-act]');
@@ -1577,7 +1603,11 @@
   });
   document.addEventListener('input', (e) => {
     const t = e.target;
-    if (t.classList && t.classList.contains('pin-input')) t.value = t.value.replace(/\D/g, '').slice(0, 4);
+    if (t.classList && t.classList.contains('pin-real')) {
+      t.value = t.value.replace(/\D/g, '').slice(0, 4);
+      pinPaint(t);
+      if (t.value.length === 4) { Haptics.tick(); setTimeout(() => { const f = t.closest('form'); if (f && t.value.length === 4) FORMS.login(f); }, 120); }
+    }
     const el = t.closest && t.closest('[data-input]');
     if (el && INPUT[el.dataset.input]) INPUT[el.dataset.input](el);
   });
@@ -1597,6 +1627,7 @@
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* ignore */ }
   recalcAll();
   persist();
+  state.quote = nextQuote();
 
   let first = REMOTE && !state.token ? 'login' : 'home';
   if (first === 'home' && isIOS() && !isStandalone() && !LS.get('mm_install_seen')) first = 'install';
