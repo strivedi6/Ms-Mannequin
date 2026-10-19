@@ -455,6 +455,7 @@ html[data-theme="dark"] {
   --fill: rgba(120, 120, 128, .24);
 }
 html[data-theme="dark"] .btn { color: #1a0d0e; }
+html[data-theme="dark"] .btn-danger { background: #FF453A; color: #fff; }
 html[data-theme="dark"] .btn-outline { background: rgba(229, 140, 146, .18); color: var(--navy); }
 html[data-theme="dark"] .btn-ghost { color: var(--navy); }
 html[data-theme="dark"] .avatar, html[data-theme="dark"] .chip[aria-pressed="true"], html[data-theme="dark"] .rankrow:first-child .rk { color: #1a0d0e; }
@@ -470,12 +471,9 @@ html[data-theme="dark"] .inv-img { box-shadow: 0 6px 24px rgba(0, 0, 0, .6); }
 html[data-theme="dark"] .spinner { border-color: var(--line); border-top-color: var(--navy); }
 html[data-theme="dark"] .look-dark { background: #000; }
 
-/* ---------- Printing: only the invoice picture ---------- */
-#print-sheet { display: none; }
-@media print {
-  @page { size: A4; margin: 8mm; }
-  html, body { background: #fff !important; }
-  body > *:not(#print-sheet) { display: none !important; }
-  #print-sheet { display: block !important; }
-  #print-sheet img { display: block; margin: 0 auto; width: auto; max-width: 100%; max-height: 277mm; object-fit: contain; }
-}
+
+/* ---------- Pull to refresh ---------- */
+#ptr { position: fixed; top: calc(var(--safe-top) + 6px); left: 50%; width: 40px; height: 40px; margin-left: -20px; border-radius: 50%; background: var(--card); box-shadow: 0 4px 16px rgba(0, 0, 0, .18); display: flex; align-items: center; justify-content: center; z-index: 900; pointer-events: none; opacity: 0; transform: translateY(-54px); transition: transform .25s ease, opacity .25s ease; }
+#ptr.drag { transition: none; }
+#ptr .spinner { width: 22px; height: 22px; margin: 0; animation-play-state: paused; }
+#ptr.on .spinner { animation-play-state: running; }

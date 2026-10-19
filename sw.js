@@ -1,5 +1,5 @@
 /* Service worker: keeps the app on the phone so it opens instantly and works offline. */
-const CACHE = 'msm-invoices-v5';
+const CACHE = 'msm-invoices-v6';
 const SHELL = [
   './',
   './index.html',

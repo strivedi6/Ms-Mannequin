@@ -55,7 +55,6 @@
     share: sv('<path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11H5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-1"/>', 20),
     chat: sv('<path d="M21 12a8.5 8.5 0 0 1-12.4 7.5L3 21l1.6-5.3A8.5 8.5 0 1 1 21 12z"/>', 20),
     image: sv('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 17l-5-5-9 8"/>', 20),
-    print: sv('<path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v7H7z"/>', 20),
     edit: sv('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>', 20),
     trash: sv('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', 18),
     chevron: sv('<path d="M9 6l6 6-6 6"/>', 18),
@@ -312,8 +311,8 @@
 
   /* ---------------- The invoice as a picture and a PDF (what the customer receives) ---------------- */
   const INK = '#2A3940', ROSE = '#DFB7B4', ROSE_D = '#B9837F', BLUSH = '#F6ECEB', LINE = '#ECDCD9', MUTED = '#66737A', SOFT = '#47555B';
-  const F_SERIF = '"Didot", "Bodoni Moda", Georgia, serif';
-  const F_SANS = '"Bookmania", "Libre Baskerville", Georgia, serif';
+  const F_SERIF = '-apple-system, "SF Pro Display", BlinkMacSystemFont, system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif';
+  const F_SANS = '-apple-system, "SF Pro Text", BlinkMacSystemFont, system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif';
 
   /** Text with letter-spacing. align: left, center, right. Returns the drawn width. */
   function fillTracked(ctx, text, x, y, track, align, draw) {
@@ -618,16 +617,12 @@
     return out;
   }
 
-  /* ---------------- Sharing: image, PDF, WhatsApp and print ---------------- */
+  /* ---------------- Sharing: the invoice as an image and PDF ---------------- */
   const Share = {
     current: null,
     building: false,
     failedId: null,
     async build(inv) {
-      try {
-        await Promise.all([`48px "Bodoni Moda"`, `700 46px "Bodoni Moda"`, `26px "Libre Baskerville"`, `700 26px "Libre Baskerville"`, `italic 26px "Libre Baskerville"`]
-          .map((f) => document.fonts.load(f)));
-      } catch (e) { /* fallback fonts */ }
       const A = { logo: await loadImg('logo.png') };
       const probe = document.createElement('canvas').getContext('2d');
       const m = drawInvoice(probe, inv, A, true);
@@ -696,16 +691,6 @@
     if (!ph) toast('Add a mobile number for this customer to send straight to their WhatsApp.');
     window.open(url, '_blank');
   }
-  function printInvoice() {
-    const cur = Share.current;
-    if (!cur) return;
-    const sheet = document.getElementById('print-sheet');
-    sheet.innerHTML = `<img alt="" src="${esc(cur.url)}">`;
-    const img = sheet.querySelector('img');
-    const go = () => setTimeout(() => window.print(), 50);
-    if (img.decode) img.decode().then(go, go); else img.onload = go;
-  }
-
   /* ---------------- Router ---------------- */
   const VIEWS = {};
   const TABS = ['home', 'invoices', 'customers', 'settings'];
@@ -1024,16 +1009,10 @@
         : failed ? `<div class="card center"><p>Could not prepare the invoice.</p><button class="btn btn-outline" type="button" data-act="retryShare">Try again</button></div>`
         : '<div class="card center"><div class="spinner"></div><p class="small muted">Preparing the invoice…</p></div>'}
       <div class="sticky-actions">
-        <button class="btn" type="button" data-act="shareFile" data-kind="pdf" ${ready ? '' : 'disabled'}>${I.share} Share with customer</button>
         <div class="grid-2">
-          <button class="btn btn-outline" type="button" data-act="whatsapp" data-id="${esc(id)}">${I.chat} WhatsApp</button>
-          <button class="btn btn-outline" type="button" data-act="print" ${ready ? '' : 'disabled'}>${I.print} Print</button>
+          <button class="btn" type="button" data-act="shareFile" data-kind="pdf" ${ready ? '' : 'disabled'}>${I.share} Share</button>
+          <button class="btn btn-danger" type="button" data-act="deleteInvoice" data-id="${esc(id)}">${I.trash} Delete</button>
         </div>
-        <div class="grid-2">
-          <button class="link-btn" type="button" data-act="shareFile" data-kind="image" ${ready ? '' : 'disabled'}>Save image</button>
-          <button class="link-btn" type="button" data-act="editInvoice" data-id="${esc(id)}">Edit invoice</button>
-        </div>
-        <button class="btn btn-danger" type="button" data-act="deleteInvoice" data-id="${esc(id)}">${I.trash} Delete this invoice</button>
       </div>
     </div></div>`;
   };
@@ -1404,8 +1383,6 @@
     },
     retryShare() { Share.failedId = null; render(); },
     async shareFile(el) { try { await Share.send(el.dataset.kind); } catch (e) { showError(e); } },
-    whatsapp(el) { const inv = getInv(el.dataset.id); if (inv) whatsappInvoice(inv); },
-    print() { printInvoice(); },
     newCustomer() { go('customerForm', {}); },
     editCustomer(el) { go('customerForm', { id: el.dataset.id }); },
     openCustomer(el) { go('customer', { id: el.dataset.id }); },
@@ -1634,6 +1611,51 @@
   state.route = { name: first, params: {} };
   history.replaceState({ name: first, params: {} }, '');
   render();
+
+  /* Pull down on any screen to sync with the Google Sheet */
+  (function pullToRefresh() {
+    const el = document.createElement('div');
+    el.id = 'ptr';
+    el.innerHTML = '<div class="spinner"></div>';
+    document.body.appendChild(el);
+    let y0 = null, pull = 0, busy = false;
+    const LIMIT = 64;
+    const show = (p) => { el.style.transform = `translateY(${Math.min(p, 90) - 54}px)`; el.style.opacity = String(Math.min(1, p / LIMIT)); };
+    const reset = () => { el.classList.remove('drag', 'on'); el.style.transform = ''; el.style.opacity = ''; pull = 0; };
+    document.addEventListener('touchstart', (e) => {
+      const t = e.target;
+      y0 = (!busy && e.touches.length === 1 && window.scrollY <= 0 && !state.editing && !(t.closest && t.closest('input, textarea, select'))) ? e.touches[0].clientY : null;
+      pull = 0;
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      if (y0 === null) return;
+      const dy = e.touches[0].clientY - y0;
+      if (dy <= 0 || window.scrollY > 0) { if (pull) reset(); return; }
+      pull = dy * 0.5;
+      el.classList.add('drag');
+      show(pull);
+    }, { passive: true });
+    const end = async () => {
+      if (y0 === null) return;
+      y0 = null;
+      el.classList.remove('drag');
+      if (pull < LIMIT) { reset(); return; }
+      busy = true;
+      el.classList.add('on');
+      show(LIMIT);
+      try {
+        if (REMOTE) {
+          while (state.syncing) await new Promise((r) => setTimeout(r, 150));
+          const ok = await sync(true);
+          if (ok) toast('Everything is up to date.');
+        } else { render(); }
+      } catch (e) { /* sync reports its own errors */ }
+      busy = false;
+      reset();
+    };
+    document.addEventListener('touchend', end, { passive: true });
+    document.addEventListener('touchcancel', () => { y0 = null; reset(); }, { passive: true });
+  })();
   sync();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { sync(); } else persist(); });
   window.addEventListener('pagehide', persist);
