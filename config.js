@@ -6,9 +6,9 @@ window.APP_CONFIG = {
   subtitle: 'Custom Fashion Designing',
 
   // Raise this each time you upload a new version (shown on the Settings screen).
-  appVersion: '1.1.0',
+  appVersion: '1.1.1',
 
   // Google Apps Script web app (/exec link). Paste it here during setup (see SETUP.md).
   // While this is empty the app still works, and keeps everything on this phone only.
-  apiUrl: ''
+  apiUrl: 'https://script.google.com/macros/s/AKfycbxUEPgvNsjjxafd_sU9HSKcpn1toyqcAn4jJdTC_8zZxd63uQ-kfi0LcI6UvXs4cLgt-g/exec'
 };
