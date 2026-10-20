@@ -119,7 +119,16 @@
   /* ---------------- Invoice maths ---------------- */
   const addonSum = (it) => (it.addons || []).reduce((s, a) => s + num(a.price), 0);
   const lineTotal = (it) => (num(it.qty) || 1) * (num(it.price) + addonSum(it));
-  const subtotalOf = (items) => (items || []).reduce((s, it) => s + lineTotal(it), 0);
+  const grossOf = (items) => (items || []).reduce((s, it) => s + lineTotal(it), 0);
+  /** Discount in money: either a percentage of the items total or a flat amount (never more than the items total). */
+  function discountAmt(items, d) {
+    const gross = grossOf(items), v = Math.max(0, num(d && d.value));
+    if (!v) return 0;
+    const amt = d.type === 'flat' ? Math.min(v, gross) : gross * Math.min(v, 100) / 100;
+    return Math.round(amt * 100) / 100;
+  }
+  /** The invoice amount: items total less any discount. */
+  const subtotalOf = (items, d) => grossOf(items) - discountAmt(items, d);
 
   /** Rebuilds a customer's running balance: opening dues, then each invoice and payment in the order they happened. */
   function recalcCustomer(cid) {
@@ -133,7 +142,7 @@
     for (const e of events) {
       if (e.inv) {
         const i = e.inv;
-        const next = { subtotal: subtotalOf(i.items), prevBalance: bal };
+        const next = { subtotal: subtotalOf(i.items, i.discount), prevBalance: bal };
         next.total = next.subtotal + bal;
         next.balance = next.total - num(i.advance);
         if (['subtotal', 'prevBalance', 'total', 'balance'].some((k) => num(i[k]) !== next[k])) { Object.assign(i, next); i.updatedAt = Date.now(); i._d = 1; }
@@ -146,7 +155,7 @@
     const c = getCust(cid);
     if (!c) return 0;
     let bal = num(c.opening);
-    liveInvoices().filter((i) => i.customerId === cid && i.createdAt < t).forEach((i) => { bal += subtotalOf(i.items) - num(i.advance); });
+    liveInvoices().filter((i) => i.customerId === cid && i.createdAt < t).forEach((i) => { bal += subtotalOf(i.items, i.discount) - num(i.advance); });
     (c.payments || []).filter((p) => p.createdAt < t).forEach((p) => { bal -= num(p.amount); });
     return bal;
   }
@@ -167,14 +176,15 @@
 
   /* ---------------- The invoice being written (kept until saved) ---------------- */
   const blankItem = () => ({ name: '', qty: 1, price: '', addons: [], note: '' });
-  const newDraft = () => ({ editId: null, createdAt: null, no: null, date: todayIso(), delivery: '', customerId: '', items: [blankItem()], advance: '', notes: '' });
+  const newDraft = () => ({ editId: null, createdAt: null, no: null, date: todayIso(), delivery: '', customerId: '', items: [blankItem()], discount: { type: 'pct', value: '' }, advance: '', notes: '' });
   let draft = LS.get('mm_draft') || newDraft();
   const saveDraft = () => LS.set('mm_draft', draft);
   function draftCalc() {
-    const sub = subtotalOf(draft.items);
+    if (!draft.discount) draft.discount = { type: 'pct', value: '' };
+    const gross = grossOf(draft.items), disc = discountAmt(draft.items, draft.discount), sub = gross - disc;
     const prev = draft.customerId ? balanceBefore(draft.customerId, draft.createdAt || Infinity) : 0;
     const total = sub + prev, adv = num(draft.advance);
-    return { sub, prev, total, adv, bal: total - adv };
+    return { gross, disc, sub, prev, total, adv, bal: total - adv };
   }
 
   /* ---------------- Appearance (Settings › Appearance): light, dark, or automatic ---------------- */
@@ -504,6 +514,11 @@
       text(l, bx, y - 2, `${bold ? '700 ' : ''}26px ${F_SANS}`, bold ? INK : SOFT);
       text(v, R, y - 2, `${bold ? '700 ' : ''}26px ${F_SANS}`, bold ? INK : SOFT, 'right');
     };
+    const dAmt = discountAmt(inv.items, inv.discount);
+    if (dAmt > 0) {
+      row('Items total', money(grossOf(inv.items)));
+      row(inv.discount.type === 'flat' ? 'Discount' : `Discount (${num(inv.discount.value)}%)`, '− ' + money(dAmt));
+    }
     row('Invoice amount', money(inv.subtotal));
     row('Previous balance', money(inv.prevBalance));
     hline(y + 14, LINE, 2, bx, R);
@@ -1049,6 +1064,11 @@
   function paintTotals() {
     const t = draftCalc();
     const set = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = money(v); };
+    const dr = document.getElementById('t-disc-row'), gr = document.getElementById('t-gross-row');
+    if (dr) dr.hidden = !(t.disc > 0);
+    if (gr) gr.hidden = !(t.disc > 0);
+    set('t-gross', t.gross);
+    const dn = document.getElementById('t-disc'); if (dn) dn.textContent = '− ' + money(t.disc);
     set('t-sub', t.sub); set('t-prev', t.prev); set('t-total', t.total); set('t-bal', t.bal);
   }
 
@@ -1076,6 +1096,14 @@
         <button class="btn btn-outline" type="button" data-act="addItem">${I.plusS} Add item</button>
       </div>
       <div class="card" style="gap:0">
+        <div class="tot-row" id="t-gross-row" hidden><span>Items total</span><b id="t-gross"></b></div>
+        <div class="tot-row disc-row"><span>Discount</span>
+          <div class="disc-ctl">
+            <div class="seg" role="group" aria-label="Discount type"><button type="button" data-act="discType" data-v="pct" aria-pressed="${(draft.discount || {}).type !== 'flat'}">%</button><button type="button" data-act="discType" data-v="flat" aria-pressed="${(draft.discount || {}).type === 'flat'}">${esc(db.settings.currency || 'Flat')}</button></div>
+            <input class="input" id="iv-disc" type="number" inputmode="decimal" min="0" placeholder="0" value="${esc((draft.discount || {}).value)}" data-input="invDiscount" aria-label="Discount">
+          </div>
+        </div>
+        <div class="tot-row" id="t-disc-row" hidden><span>Discount applied</span><b id="t-disc" style="color:var(--ok)"></b></div>
         <div class="tot-row"><span>Invoice amount</span><b id="t-sub"></b></div>
         <div class="tot-row"><span>Previous balance</span><b id="t-prev"></b></div>
         <div class="tot-row big"><span>Total</span><b id="t-total"></b></div>
@@ -1305,7 +1333,7 @@
     if (!inv) return;
     draft = {
       editId: inv.id, createdAt: inv.createdAt, no: inv.no, date: inv.date, delivery: inv.delivery || '', customerId: inv.customerId,
-      items: JSON.parse(JSON.stringify(inv.items)).map((it) => Object.assign(blankItem(), it)), advance: inv.advance || '', notes: inv.notes || ''
+      items: JSON.parse(JSON.stringify(inv.items)).map((it) => Object.assign(blankItem(), it)), discount: Object.assign({ type: 'pct', value: '' }, inv.discount || {}), advance: inv.advance || '', notes: inv.notes || ''
     };
     saveDraft();
     go('compose');
@@ -1326,7 +1354,7 @@
     Object.assign(inv, {
       date: draft.date, delivery: draft.delivery || '', customerId: cust.id,
       customer: { name: cust.name, mobile: cust.mobile, address: cust.address },
-      items, advance: num(draft.advance), notes: String(draft.notes || '').trim()
+      items, discount: num(draft.discount && draft.discount.value) > 0 ? { type: draft.discount.type === 'flat' ? 'flat' : 'pct', value: num(draft.discount.value) } : { type: 'pct', value: 0 }, advance: num(draft.advance), notes: String(draft.notes || '').trim()
     });
     touch(inv);
     rememberItemNames(items);
@@ -1355,6 +1383,12 @@
     startOver() {
       if (draft.editId) { draft = newDraft(); saveDraft(); back('invoices'); return; }
       if (confirmBox('Clear this invoice and start again?')) { draft = newDraft(); saveDraft(); render({ dir: 'fade' }); }
+    },
+    discType(el) {
+      draft.discount = Object.assign({ value: '' }, draft.discount, { type: el.dataset.v === 'flat' ? 'flat' : 'pct' });
+      saveDraft();
+      document.querySelectorAll('[data-act="discType"]').forEach((b) => b.setAttribute('aria-pressed', String(b === el)));
+      paintTotals();
     },
     addItem() { draft.items.push(blankItem()); saveDraft(); render(); const l = document.querySelectorAll('.item-card'); if (l.length) l[l.length - 1].scrollIntoView({ block: 'center' }); },
     delItem(el) { const i = +el.closest('.item-card').dataset.i; draft.items.splice(i, 1); fileFromDraft(); saveDraft(); render(); },
@@ -1511,6 +1545,7 @@
     invDate(el) { draft.date = el.value; saveDraft(); },
     invDelivery(el) { draft.delivery = el.value; saveDraft(); },
     invAdvance(el) { draft.advance = el.value; saveDraft(); paintTotals(); },
+    invDiscount(el) { draft.discount = Object.assign({ type: 'pct' }, draft.discount, { value: el.value }); saveDraft(); paintTotals(); },
     invNotes(el) { draft.notes = el.value; saveDraft(); },
     item(el) {
       const card = el.closest('.item-card');

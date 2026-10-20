@@ -90,7 +90,7 @@ p { margin: 0; }
 .field label, .label { font-size: 13px; font-weight: 600; }
 .input, .select, .textarea { height: 50px; min-height: 50px; line-height: normal; border: 1px solid var(--field-line); border-radius: 12px; padding: 0 14px; font-size: 16px; background: var(--field); color: var(--ink); width: 100%; min-width: 0; max-width: 100%; display: block; -webkit-appearance: none; appearance: none; transition: border-color .2s, box-shadow .2s, background-color .2s; }
 .textarea { height: auto; padding: 12px 14px; min-height: 100px; resize: vertical; line-height: 1.45; }
-.input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--navy); background: var(--card); box-shadow: 0 0 0 3px rgba(42, 57, 64, .12); }
+.input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--navy); background-color: var(--card); box-shadow: 0 0 0 3px rgba(42, 57, 64, .12); }
 .select { padding-right: 40px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%232A3940' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 14px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
 input[type="date"].input { text-align: left; padding-top: 0; padding-bottom: 0; }
 input[type="date"].input::-webkit-date-and-time-value { text-align: left; margin: 0; min-height: 1.2em; }
@@ -318,8 +318,8 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: -.022e
 
 /* Cards and grouped lists */
 .card { border-radius: 22px; padding: 16px; }
-.input, .select, .textarea { border: 0; border-radius: 12px; height: 48px; min-height: 48px; font-size: 17px; background: var(--fill); }
-.input:focus, .select:focus, .textarea:focus { background: var(--fill); border-color: transparent; box-shadow: 0 0 0 2px var(--navy); }
+.input, .select, .textarea { border: 0; border-radius: 12px; height: 48px; min-height: 48px; font-size: 17px; background-color: var(--fill); }
+.input:focus, .select:focus, .textarea:focus { background-color: var(--fill); border-color: transparent; box-shadow: 0 0 0 2px var(--navy); }
 .textarea { padding: 12px 14px; }
 .field label, .label { font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
 .search .input { height: 44px; min-height: 44px; border-radius: 22px; background: var(--fill); padding-left: 40px; }
@@ -343,7 +343,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 700; letter-spacing: -.022e
 .kv { border-top: .5px solid var(--line); }
 .tot-row { border-top: .5px solid var(--line); }
 .item-card { background: var(--cream); border: 0; border-radius: 18px; }
-.item-card .input, .item-card .select { background: var(--card); }
+.item-card .input, .item-card .select { background-color: var(--card); }
 .line-total { border-top: .5px solid var(--line); }
 .chip { border: 0; background: var(--fill); color: var(--ink); font-weight: 500; font-size: 14px; }
 .chip[aria-pressed="true"] { background: var(--navy); color: #fff; }
@@ -464,7 +464,7 @@ html[data-theme="dark"] .nav { border-color: rgba(255, 255, 255, .12); box-shado
 html[data-theme="dark"] .nav button { color: #AEAEB2; }
 html[data-theme="dark"] .nav button[aria-current="page"] { color: var(--navy); background: rgba(120, 120, 128, .3); }
 html[data-theme="dark"] .item-card { background: #000; }
-html[data-theme="dark"] .item-card .input, html[data-theme="dark"] .item-card .select { background: #2C2C2E; }
+html[data-theme="dark"] .item-card .input, html[data-theme="dark"] .item-card .select { background-color: #2C2C2E; }
 html[data-theme="dark"] .select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23E58C92' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); }
 html[data-theme="dark"] .set-row > svg:last-child, html[data-theme="dark"] .me-row > svg:last-child { color: #636366; }
 html[data-theme="dark"] .inv-img { box-shadow: 0 6px 24px rgba(0, 0, 0, .6); }
@@ -477,3 +477,15 @@ html[data-theme="dark"] .look-dark { background: #000; }
 #ptr.drag { transition: none; }
 #ptr .spinner { width: 22px; height: 22px; margin: 0; animation-play-state: paused; }
 #ptr.on .spinner { animation-play-state: running; }
+
+/* ---------- Dropdown arrow: one chevron only; dates centred ---------- */
+.select { background-repeat: no-repeat; background-position: right 14px center; background-size: 14px; }
+input[type="date"].input { display: flex; align-items: center; line-height: 1; padding-top: 0; padding-bottom: 0; }
+input[type="date"].input::-webkit-datetime-edit { display: flex; align-items: center; padding: 0; line-height: 1; }
+input[type="date"].input::-webkit-date-and-time-value { text-align: left; margin: 0; min-height: 0; height: auto; line-height: 1; }
+/* ---------- Discount ---------- */
+.disc-ctl { display: flex; align-items: center; gap: 8px; }
+.disc-ctl .seg { width: 104px; flex-shrink: 0; }
+.disc-ctl .seg button { min-height: 36px; }
+.disc-ctl .input { width: 96px; max-width: 96px; text-align: right; }
+.tot-row[hidden] { display: none; }
